@@ -152,3 +152,5 @@ src/Karion.BusinessSolution.Core/obj/
 src/Karion.BusinessSolution.Core.Shared/bin/
 src/Karion.BusinessSolution.Core.Shared/obj/
 test/
+"*.json" 
+"*.env" 
