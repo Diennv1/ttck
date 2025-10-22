@@ -34,6 +34,7 @@ namespace Karion.BusinessSolution.QuanLyDanhMuc
 		public async Task<PagedResultDto<GetNguoiBenhForViewDto>> GetAll(GetAllNguoiBenhsInput input)
 		{
 		    var query = _nguoiBenhRepository.GetAll()
+			    .Where(e => e.IsNhanVien)
 		        .WhereIf(!string.IsNullOrWhiteSpace(input.Filter), e => 
 		            e.HoVaTen.Contains(input.Filter) || 
 		            e.GioiTinh.Contains(input.Filter) || 
@@ -55,7 +56,6 @@ namespace Karion.BusinessSolution.QuanLyDanhMuc
 		        .WhereIf(!string.IsNullOrWhiteSpace(input.EmailConfirmationCodeFilter), e => e.EmailConfirmationCode == input.EmailConfirmationCodeFilter)
 		        .WhereIf(input.IsActiveFilter > -1, e => (input.IsActiveFilter == 1 && e.IsActive) || (input.IsActiveFilter == 0 && !e.IsActive))
 		        .WhereIf(input.IsEmailConfirmedFilter > -1, e => (input.IsEmailConfirmedFilter == 1 && e.IsEmailConfirmed) || (input.IsEmailConfirmedFilter == 0 && !e.IsEmailConfirmed))
-		        .WhereIf(input.IsNhanVienFilter > -1, e => (input.IsNhanVienFilter == 1 && e.IsNhanVien) || (input.IsNhanVienFilter == 0 && !e.IsNhanVien))
 		        .WhereIf(input.IsPhoneNumberConfirmedFilter > -1, e => (input.IsPhoneNumberConfirmedFilter == 1 && e.IsPhoneNumberConfirmed) || (input.IsPhoneNumberConfirmedFilter == 0 && !e.IsPhoneNumberConfirmed))
 		        .WhereIf(!string.IsNullOrWhiteSpace(input.PasswordResetCodeFilter), e => e.PasswordResetCode == input.PasswordResetCodeFilter)
 		        .WhereIf(!string.IsNullOrWhiteSpace(input.ProfilePictureFilter), e => e.ProfilePicture == input.ProfilePictureFilter)
@@ -66,7 +66,7 @@ namespace Karion.BusinessSolution.QuanLyDanhMuc
 		        .WhereIf(input.MinThangSinhFilter != null, e => e.ThangSinh >= input.MinThangSinhFilter)
 		        .WhereIf(input.MaxThangSinhFilter != null, e => e.ThangSinh <= input.MaxThangSinhFilter)
 		        .WhereIf(input.MinNamSinhFilter != null, e => e.NamSinh >= input.MinNamSinhFilter)
-		        .WhereIf(input.MaxNamSinhFilter != null, e => e.NamSinh <= input.MaxNamSinhFilter)
+		        .WhereIf(input.MaxNamSinhFilter > 0, e => e.NamSinh <= input.MaxNamSinhFilter)
 		        .WhereIf(!string.IsNullOrWhiteSpace(input.SoTheBHYTFilter), e => e.SoTheBHYT == input.SoTheBHYTFilter)
 		        .WhereIf(!string.IsNullOrWhiteSpace(input.NoiDkBanDauFilter), e => e.NoiDkBanDau == input.NoiDkBanDauFilter)
 		        .WhereIf(!string.IsNullOrWhiteSpace(input.MaDonViBHXHFilter), e => e.MaDonViBHXH == input.MaDonViBHXHFilter)

@@ -67,6 +67,16 @@
             return arr.join(', ');
         }
 
+        // Helper: lấy giá trị int từ selector, trả về -1 nếu không có (tức là "không lọc")
+        function getIntFilterOrDefault(selector) {
+            var $el = $(selector);
+            if ($el.length === 0) return -1;
+            var v = $el.val();
+            if (v === undefined || v === null || v === "") return -1;
+            var i = parseInt(v);
+            return isNaN(i) ? -1 : i;
+        }
+
         var dataTable = _$nguoiBenhsTable.DataTable({
             paging: true,
             serverSide: true,
@@ -88,7 +98,7 @@
                         emailConfirmationCodeFilter: $('#EmailConfirmationCodeFilterId').val(),
                         isActiveFilter: $('#IsActiveFilterId').val(),
                         isEmailConfirmedFilter: $('#IsEmailConfirmedFilterId').val(),
-                        isNhanVienFilter: $('#IsNhanVienFilterId').val(),
+                        isNhanVienFilter: getIntFilterOrDefault('#IsNhanVienFilterId'),
                         isPhoneNumberConfirmedFilter: $('#IsPhoneNumberConfirmedFilterId').val(),
                         passwordResetCodeFilter: $('#PasswordResetCodeFilterId').val(),
                         profilePictureFilter: $('#ProfilePictureFilterId').val(),
@@ -255,6 +265,7 @@
                     emailConfirmationCodeFilter: $('#EmailConfirmationCodeFilterId').val(),
                     isActiveFilter: $('#IsActiveFilterId').val(),
                     isEmailConfirmedFilter: $('#IsEmailConfirmedFilterId').val(),
+                    isNhanVienFilter: getIntFilterOrDefault('#IsNhanVienFilterId'),
                     isPhoneNumberConfirmedFilter: $('#IsPhoneNumberConfirmedFilterId').val(),
                     passwordResetCodeFilter: $('#PasswordResetCodeFilterId').val(),
                     profilePictureFilter: $('#ProfilePictureFilterId').val(),
