@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Tài liệu kỹ thuật API - GetLichSuDiemDanhById</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.4; color:#222 }
+    h1,h2,h3 { color:#0b5aa3 }
+    pre { background:#f5f7fa; padding:10px; border:1px solid #e0e6ef; overflow:auto }
+    table { border-collapse: collapse; }
+    th,td { border:1px solid #ddd; padding:6px }
+  </style>
+</head>
+<body>
+  <h1>Tài liệu kỹ thuật API — GetLichSuDiemDanhById</h1>
+  <h2>1. Tổng quan</h2>
+  <p>Mục đích: Trả về lịch sử điểm danh của người dùng (theo <code>userid</code>) trong khoảng ngày chỉ định, cùng các thống kê: số ngày đi muộn, tổng giờ muộn, số ngày về sớm, tổng giờ về sớm, số ngày làm theo ca / hành chính, danh sách ngày theo loại, và thống kê chi tiết theo ngày (first/last check, phút trễ, phút về sớm, giờ tăng ca, giờ làm).</p>
+
+  <h2>2. Endpoint</h2>
+  <ul>
+    <li>URL: <code>POST /api/services/app/&lt;ControllerName&gt;/GetLichSuDiemDanhById</code></li>
+    <li>Method: POST</li>
+    <li>Auth: token (kiểm tra bằng <code>CheckValidToken</code>)</li>
+    <li>Content-Type: application/json</li>
+  </ul>
+
+  <h2>3. Request DTO</h2>
+  <p><strong>MobileDto.GetLichSuDiemDanhDto</strong></p>
+  <table>
+    <tr><th>Thuộc tính</th><th>Kiểu</th><th>Mô tả</th></tr>
+    <tr><td>token</td><td>string</td><td>Token xác thực.</td></tr>
+    <tr><td>userid</td><td>int</td><td>ID người dùng (NguoiBenhId).</td></tr>
+    <tr><td>username</td><td>string</td><td>Username dùng để kiểm tra token.</td></tr>
+    <tr><td>tuNgay</td><td>DateTime? (optional)</td><td>Ngày bắt đầu (inclusive). Nếu null → mặc định DateTime.Now.AddDays(-30).</td></tr>
+    <tr><td>denNgay</td><td>DateTime? (optional)</td><td>Ngày kết thúc (inclusive). Nếu null → mặc định DateTime.Now.</td></tr>
+  </table>
+
+  <h3>Ví dụ Request (JSON)</h3>
+  <pre>{
+  "token": "eyJhbGciOi...",
+  "userid": 123,
+  "username": "nguyenvan",
+  "tuNgay": "2025-09-01T00:00:00",
+  "denNgay": "2025-09-30T23:59:59"
+}</pre>
+
+  <h2>4. Response DTO</h2>
+  <p><strong>MobileDto.GetLichSuDiemDanhResultDto</strong></p>
+  <ul>
+    <li><code>status</code> (bool) — kết quả true/false</li>
+    <li><code>message</code> (string) — mô tả</li>
+    <li><code>errorCode</code> (int) — mã lỗi nội bộ</li>
+    <li><code>LichSuDiemDanh</code> (List&lt;LichSuDiemDanhDto&gt;) — danh sách bản ghi Attendance</li>
+    <li><code>DiMuon</code> (DiMuon) — thống kê đi muộn</li>
+    <li><code>VeSom</code> (VeSom) — thống kê về sớm</li>
+    <li><code>SoNgayNghi</code> (int) — số ngày không có attendance</li>
+    <li><code>DanhSachNgayNghi</code> (List&lt;DateTime&gt;) — danh sách ngày nghỉ</li>
+    <li><code>SoNgayLamTheoCa</code> (int) — số ngày làm theo ca</li>
+    <li><code>SoNgayLamHanhChinh</code> (int) — số ngày làm hành chính</li>
+    <li><code>DanhSachNgayLoai</code> (List&lt;NgayLoaiDto&gt;) — danh sách ngày kèm loại</li>
+    <li><code>DanhSachNgayThongKe</code> (List&lt;NgayThongKeDto&gt;) — thống kê per-day chi tiết</li>
+  </ul>
+
+  <h3>Cấu trúc các DTO phụ</h3>
+  <pre>// LichSuDiemDanhDto
+{
+  "CheckIn": "2025-09-15T07:50:00",
+  "CheckInLatitude": 20.9467,
+  "CheckInLongitude": 106.3121,
+  "CheckInDeviceInfo": "Shift:Sáng;Device:Android",
+  "IsLateCheckIn": false,
+  "ShiftId": null,
+  "ShiftName": "Hành chính",
+  "WorkMode": "HanhChinh"
+}
+
+// DiMuon
+{ "SoNgayDiMuon": 1, "TongGioDiMuon": 0.5 }
+
+// VeSom
+{ "SoNgayVeSom": 0, "TongGioVeSom": 0.0 }
+
+// NgayLoaiDto
+{ "Ngay": "2025-09-15", "Loai": "HanhChinh" }
+
+// NgayThongKeDto
+{
+  "Ngay": "2025-09-15",
+  "Loai": "HanhChinh",
+  "FirstCheck": "2025-09-15T07:50:00",
+  "LastCheck": "2025-09-15T17:10:00",
+  "LateMinutes": 0,
+  "EarlyMinutes": 0,
+  "OvertimeHours": 0.17,
+  "WorkedHours": 9.33,
+  "ShiftName": "Hành chính",
+  "WorkMode": "HanhChinh"
+}
+</pre>
+
+  <h2>5. Luồng tính toán (chi tiết)</h2>
+  <ol>
+    <li>Lấy cấu hình giờ hành chính từ <code>thongtindonvi</code>: <code>GioLamViecSang</code> và <code>GioLamViecChieu</code> (định dạng <code>HH:mm-HH:mm</code>).</li>
+    <li>Lấy tất cả attendance cho user trong khoảng [tuNgay, denNgay], nhóm theo ngày (CheckIn.Date).</li>
+    <li>Với mỗi ngày: xác định loại ngày:
+      <ul>
+        <li>Nếu bất kỳ attendance record trong ngày có <code>ShiftId != null</code> → <strong>TheoCa</strong>.</li>
+        <li>Ngược lại → <strong>HanhChinh</strong>.</li>
+        <li>Ngày không có attendance → nằm trong <code>DanhSachNgayNghi</code>.</li>
+      </ul>
+    </li>
+    <li>Tính <em>đi muộn</em>: dùng bản ghi sớm nhất (first) của ngày, lấy ca áp dụng cho bản ghi đó:
+      <ul>
+        <li>Nếu bản ghi có <code>ShiftId</code> → dùng <code>Shift.StartTime</code> / <code>Shift.EndTime</code> / <code>ToleranceMinutes</code> từ bảng Shifts.</li>
+        <li>Nếu null → fallback giờ hành chính (<code>startMorning</code>.. <code>endAfternoon</code>).</li>
+        <li>Nếu <code>normalizedFirstCheck</code> &gt; <code>shiftStartDt</code> thì tính phút/giờ muộn.</li>
+      </ul>
+    </li>
+    <li>Tính <em>về sớm</em> và <em>tăng ca</em>: dùng bản ghi muộn nhất (last) của ngày, lấy ca áp dụng cho bản ghi đó tương tự, so sánh với <code>shiftEndDt</code> để xác định về sớm (nếu &lt;) hoặc tăng ca (nếu &gt;).</li>
+    <li>Tính <code>WorkedHours</code> = <code>lastCheck - firstCheck</code> (giờ).</li>
+    <li>Lưu <code>NgayThongKeDto</code> cho từng ngày (FirstCheck, LastCheck, LateMinutes, EarlyMinutes, OvertimeHours, WorkedHours, ShiftName, WorkMode).</li>
+  </ol>
+
+  <h2>6. Ghi chú & Quy tắc</h2>
+  <ul>
+    <li>Quy tắc phân loại: hiện tại nếu ngày có ít nhất 1 record có <code>ShiftId</code> thì toàn bộ ngày được xem là <strong>TheoCa</strong>. Nếu muốn chia nửa ngày, cần quy tắc khác.</li>
+    <li>Ca qua đêm: nếu <code>Shift.StartTime &gt; Shift.EndTime</code>, tính cửa sổ từ <code>date + StartTime</code> đến <code>date+1 + EndTime</code> và normalize check-in/check-out tương ứng.</li>
+    <li><code>ToleranceMinutes</code> có thể áp dụng khi xác định muộn/đúng giờ (mặc định 15 phút nếu không có).</li>
+    <li>API hiện trả tất cả bản ghi trong khoảng (không phân trang). Nếu cần, thêm paging hoặc giới hạn khoảng thời gian.</li>
+  </ul>
+
+  <h2>7. Mã lỗi</h2>
+  <ul>
+    <li>0: Thành công.</li>
+    <li>400: Lỗi nội bộ.</li>
+    <li>401: Token không hợp lệ.</li>
+    <li>412: Thiếu cấu hình giờ làm.</li>
+  </ul>
+
+  <h2>8. Ví dụ kiểm tra & SQL</h2>
+  <pre>-- Kiểm tra attendance
+SELECT * FROM Attendances WHERE NguoiBenhId = 123
+  AND CheckIn &gt;= '2025-09-01' AND CheckIn &lt; '2025-10-01';
+
+-- Kiểm tra shift
+SELECT * FROM Shifts WHERE Id IN (
+  SELECT DISTINCT ShiftId FROM Attendances WHERE ShiftId IS NOT NULL AND NguoiBenhId = 123
+);
+</pre>
+
+  <h2>9. Nâng cao / Đề xuất</h2>
+  <ul>
+    <li>Thêm phân loại nghỉ phép / nghỉ không lương (LeaveRequests) và tích hợp vào DanhSachNgayLoai.</li>
+    <li>Thêm tùy chọn <code>includeDetails</code> để client có thể bật/tắt DanhSachNgayThongKe (giảm payload).</li>
+    <li>Thêm export Excel/PDF theo định dạng bảng chấm công.</li>
+  </ul>
+
+  <h2>10. Các file/điểm cần chỉnh trong mã nguồn</h2>
+  <ul>
+    <li>Controller: phương thức <code>GetLichSuDiemDanhById</code> (file nơi bạn đang chỉnh).</li>
+    <li>Repositories: đảm bảo <code>_shiftRepository</code> và <code>_nguoiBenhRepository</code> được inject.</li>
+    <li>DTOs: cập nhật MobileDto như trong phần mô tả (LichSuDiemDanhDto, NgayLoaiDto, NgayThongKeDto, GetLichSuDiemDanhResultDto).</li>
+  </ul>
+
+  <hr/>
+  <p>Generated on: 2025-10-23 01:32:29 UTC</p>
+</body>
+</html>
